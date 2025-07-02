@@ -1,0 +1,91 @@
+Icon generation API
+AI Icon generation
+Create stunning icons in different styles and formats (png, svg) from text prompts using our advanced AI models.
+
+POST
+/
+v1
+/
+ai
+/
+text-to-icon
+
+Try it
+​
+Description
+Generate an icon from a text prompt.
+
+Authorizations
+​
+x-freepik-api-key
+stringheaderrequired
+Your Freepik API key. Required for authentication. Learn how to obtain an API key
+
+Body
+application/json
+​
+prompt
+stringrequired
+The prompt to generate the icon
+
+Example:
+"A cute cat icon"
+
+​
+webhook_url
+stringrequired
+The webhook URL to receive the result
+
+Example:
+"https://example.com/webhook"
+
+​
+format
+enum<string>default:png
+The format of the icon
+
+Available options: png, svg 
+Example:
+"svg"
+
+​
+style
+enum<string>default:solid
+The style to use for the icon
+
+Available options: solid, outline, color, flat, sticker 
+Example:
+"solid"
+
+​
+num_inference_steps
+integer
+The number of inference steps to use for the generation
+
+Required range: 10 <= x <= 50
+Example:
+10
+
+​
+guidance_scale
+number
+The guidance scale to use for the generation
+
+Required range: 0 <= x <= 10
+Example:
+7
+
+Response
+200
+
+200
+application/json
+Success - The request has succeeded and the Text to Icon process has started.
+
+​
+data
+objectrequired
+
+Show child attributes
+
+Example:
