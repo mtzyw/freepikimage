@@ -4,14 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ShipAny Template One is a full-stack AI SaaS boilerplate built with Next.js 15, featuring AI icon generation capabilities through Freepik API, user authentication, subscription management, and multi-language support. This is a production-ready template for building AI startups quickly.
+ShipAny Template One is a full-stack AI SaaS boilerplate built with Next.js 15, featuring AI capabilities including video generation through Kling AI and icon generation, user authentication, subscription management, and multi-language support. This is a production-ready template for building AI startups quickly.
 
 ## Core Technologies & Architecture
 
 - **Frontend**: Next.js 15 with React 19, TypeScript, Tailwind CSS
 - **Database**: PostgreSQL with Drizzle ORM
 - **Authentication**: NextAuth.js v5 with Google/GitHub OAuth and Google One Tap
-- **AI Integration**: Custom AI SDK wrapper for Kling video generation, supports multiple AI providers
+- **AI Integration**: Custom AI SDK wrapper in `src/aisdk/` with Kling provider for video generation, supports multiple AI providers (OpenAI, Replicate, DeepSeek)
 - **Payments**: Stripe integration with subscription management
 - **Internationalization**: next-intl with English/Chinese support
 - **UI Components**: Radix UI + shadcn/ui components
@@ -45,7 +45,7 @@ pnpm db:generate
 # Run migrations
 pnpm db:migrate
 
-# Open Drizzle Studio
+# Open Drizzle Studio (database GUI)
 pnpm db:studio
 
 # Push schema changes directly (dev only)
@@ -65,9 +65,10 @@ pnpm docker:build
 
 ### Database Schema
 - Uses Drizzle ORM with PostgreSQL
-- Main entities: users, orders, credits, apikeys, posts, affiliates, feedbacks
+- Main entities: users, orders, credits, apikeys, posts, affiliates, feedbacks, icon_generations
 - Schema located in `src/db/schema.ts`
 - Migrations in `src/db/migrations/`
+- Each table uses auto-incrementing integer IDs with UUID fields for external references
 
 ### Authentication System
 - NextAuth.js v5 configuration in `src/auth/config.ts`
@@ -76,10 +77,11 @@ pnpm docker:build
 - Session management integrated with database user records
 
 ### AI SDK Integration
-- Custom AI SDK wrapper in `src/aisdk/`
+- Custom AI SDK wrapper in `src/aisdk/` with extensible provider pattern
 - Kling AI provider for video generation in `src/aisdk/kling/`
-- Extensible provider pattern for adding new AI services
+- Support for multiple AI providers (OpenAI, Replicate, DeepSeek) via @ai-sdk packages
 - Video generation API endpoints in `src/app/api/demo/`
+- Icon generation capabilities (planned/in development) via `/api/icon/` endpoints
 
 ### Internationalization
 - Configured with next-intl
@@ -102,13 +104,16 @@ pnpm docker:build
 ## Environment Configuration
 
 Environment variables are defined in `.env.example`. Key categories:
-- Web configuration (URL, project name)
-- Database (DATABASE_URL)
-- NextAuth (AUTH_SECRET, provider keys)
-- Analytics (Google Analytics, OpenPanel, Plausible)
-- Payments (Stripe keys)
-- Storage (AWS S3 compatible)
-- AI providers (configured per provider)
+- **Web configuration**: NEXT_PUBLIC_WEB_URL, NEXT_PUBLIC_PROJECT_NAME
+- **Database**: DATABASE_URL (PostgreSQL connection string)
+- **NextAuth**: AUTH_SECRET, AUTH_URL, provider keys (Google/GitHub)
+- **Analytics**: Google Analytics, OpenPanel, Plausible tracking IDs
+- **Payments**: Stripe public/private keys and webhook secrets
+- **Storage**: AWS S3 compatible storage (endpoint, region, keys, bucket)
+- **AI providers**: API keys for OpenAI, Replicate, DeepSeek, etc.
+- **Admin**: ADMIN_EMAILS for admin access control
+
+For development, copy `.env.example` to `.env.development` and configure required variables.
 
 ## File Structure Conventions
 
@@ -138,13 +143,15 @@ Environment variables are defined in `.env.example`. Key categories:
 
 - Use TypeScript for all new code with strict type safety
 - Follow React best practices, prefer functional components
-- Component names use PascalCase, file names use kebab-case
+- Component names use PascalCase, file names use kebab-case  
 - Use Tailwind CSS for styling, avoid custom CSS when possible
 - Use shadcn/ui components over custom implementations
 - Implement responsive design patterns
 - Use sonner for toast notifications
 - Use React Context for state management (avoid prop drilling)
 - Keep components modular and reusable
+- Separate business logic into `src/services/` layer
+- Use proper type definitions in `src/types/` mirroring file structure
 
 ## Important File Patterns
 
@@ -154,3 +161,23 @@ Environment variables are defined in `.env.example`. Key categories:
 - Custom hooks: Place in `src/hooks/`, use `use` prefix
 - Type definitions: Mirror file structure in `src/types/`
 - Business logic: Separate into `src/services/` layer
+- Database models: Interface definitions in `src/models/`
+- UI blocks: Large reusable sections in `src/components/blocks/`
+
+## Icon Generator Feature
+
+The project includes an AI-powered icon generator (see `AI_ICON_GENERATOR_PLAN.md` for detailed development plan):
+- Database schema includes `icon_generations` table for tracking generation history
+- API endpoints in `/api/icon/` for generation, status checking, and downloads
+- Integration with existing credit system and third-party API key rotation
+- Support for multiple AI providers and output formats (PNG, SVG, ICO)
+- Frontend components in `src/components/icon-generator/`
+
+## Important Considerations
+
+- Always run `pnpm lint` before committing changes
+- Use existing patterns and components when possible rather than creating new ones
+- Follow the established folder structure and naming conventions
+- Test database changes with `pnpm db:studio` before pushing migrations
+- Ensure proper TypeScript typing for all new components and functions
+- Maintain responsive design principles across all UI components

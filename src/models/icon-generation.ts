@@ -12,7 +12,7 @@ export class IconGenerationModel {
       .where(eq(icon_generations.uuid, uuid))
       .limit(1);
     
-    return result[0] || null;
+    return result[0] as IconGeneration || null;
   }
 
   // 根据 Freepik Task ID 查找记录
@@ -23,7 +23,7 @@ export class IconGenerationModel {
       .where(eq(icon_generations.freepik_task_id, taskId))
       .limit(1);
     
-    return result[0] || null;
+    return result[0] as IconGeneration || null;
   }
 
   // 根据用户和 UUID 查找生成记录
@@ -39,7 +39,7 @@ export class IconGenerationModel {
       )
       .limit(1);
     
-    return result[0] || null;
+    return result[0] as IconGeneration || null;
   }
 
   // 获取用户的生成历史（分页）
@@ -54,14 +54,15 @@ export class IconGenerationModel {
   }> {
     const offset = (page - 1) * limit;
     
-    let whereCondition = eq(icon_generations.user_uuid, userUuid);
+    const baseCondition = eq(icon_generations.user_uuid, userUuid);
     
     // 如果有状态过滤
+    let whereCondition = baseCondition;
     if (status && ['pending', 'generating', 'completed', 'failed'].includes(status)) {
       whereCondition = and(
-        eq(icon_generations.user_uuid, userUuid),
+        baseCondition,
         eq(icon_generations.status, status as any)
-      );
+      )!;
     }
 
     // 查询记录
@@ -80,7 +81,7 @@ export class IconGenerationModel {
       .where(whereCondition);
 
     return {
-      records,
+      records: records as IconGeneration[],
       total: totalResult.length
     };
   }
@@ -95,7 +96,7 @@ export class IconGenerationModel {
       })
       .returning();
     
-    return result[0];
+    return result[0] as IconGeneration;
   }
 
   // 更新生成记录
@@ -106,7 +107,7 @@ export class IconGenerationModel {
         .set(data)
         .where(eq(icon_generations.uuid, uuid));
       
-      return result.rowCount > 0;
+      return result.length > 0;
     } catch (error) {
       console.error('Failed to update icon generation:', error);
       return false;
@@ -120,7 +121,7 @@ export class IconGenerationModel {
         .delete(icon_generations)
         .where(eq(icon_generations.uuid, uuid));
       
-      return result.rowCount > 0;
+      return result.length > 0;
     } catch (error) {
       console.error('Failed to delete icon generation:', error);
       return false;
@@ -178,15 +179,17 @@ export class IconGenerationModel {
       .where(eq(icon_generations.freepik_task_id, taskId))
       .limit(1);
     
-    return result[0] || null;
+    return result[0] as IconGeneration || null;
   }
 
   // 获取所有正在生成中的记录（用于检查超时等）
   static async getGeneratingRecords(): Promise<IconGeneration[]> {
-    return await db()
+    const records = await db()
       .select()
       .from(icon_generations)
       .where(eq(icon_generations.status, 'generating'))
       .orderBy(desc(icon_generations.started_at));
+    
+    return records as IconGeneration[];
   }
 }

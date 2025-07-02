@@ -66,7 +66,9 @@ export default function IconGeneratorPage() {
                   prompt: icon.prompt,
                   style: icon.style,
                   format: icon.format,
-                  image_url: icon.r2_url,
+                  image_url: icon.r2_url || icon.image_url,
+                  svg_url: icon.svg_url,
+                  png_url: icon.png_url,
                   error_message: icon.error_message,
                 }));
                 
@@ -104,7 +106,9 @@ export default function IconGeneratorPage() {
                   prompt: icon.prompt,
                   style: icon.style,
                   format: icon.format,
-                  image_url: icon.r2_url,
+                  image_url: icon.r2_url || icon.image_url,
+                  svg_url: icon.svg_url,
+                  png_url: icon.png_url,
                   error_message: icon.error_message,
                 }));
                 
@@ -149,10 +153,19 @@ export default function IconGeneratorPage() {
               return task;
             }
 
+            // 验证UUID有效性
+            if (!task.uuid || task.uuid.includes('failed-')) {
+              console.warn('⚠️ 跳过无效任务:', task.uuid);
+              return task;
+            }
+
             try {
+              console.log('🔄 轮询状态:', task.uuid, task.status);
               const response = await fetch(`/api/icon/status/${task.uuid}`);
+              console.log('📡 状态响应:', response.status, response.url);
               if (response.ok) {
                 const taskData = await response.json();
+                console.log('✅ 状态数据:', taskData);
                 return {
                   ...task,
                   ...taskData
@@ -221,14 +234,14 @@ export default function IconGeneratorPage() {
       status: 'pending',
       prompt: prompt.trim(),
       style: activeStyle,
-      format: 'png'
+      format: 'svg' // 改为默认SVG格式
     }));
 
     setCurrentBatch({
       id: batchId,
       prompt: prompt.trim(),
       style: activeStyle,
-      format: 'png',
+      format: 'svg', // 改为默认SVG格式
       tasks: initialTasks,
       isGenerating: true
     });
@@ -250,7 +263,7 @@ export default function IconGeneratorPage() {
             body: JSON.stringify({
               prompt: prompt.trim(),
               style: activeStyle,
-              format: 'png',
+              format: 'svg', // 改为SVG格式，与后端一致
               num_inference_steps: 20,
               guidance_scale: 7
             }),
@@ -264,7 +277,7 @@ export default function IconGeneratorPage() {
               status: data.status,
               prompt: prompt.trim(),
               style: activeStyle,
-              format: 'png'
+              format: 'svg' // 改为SVG格式
             } as GenerationTask;
           } else {
             return {
@@ -272,7 +285,7 @@ export default function IconGeneratorPage() {
               status: 'failed',
               prompt: prompt.trim(),
               style: activeStyle,
-              format: 'png',
+              format: 'svg', // 改为SVG格式
               error_message: data.error || "生成失败"
             } as GenerationTask;
           }
@@ -282,7 +295,7 @@ export default function IconGeneratorPage() {
             status: 'failed',
             prompt: prompt.trim(),
             style: activeStyle,
-            format: 'png',
+            format: 'svg', // 改为SVG格式
             error_message: "网络错误"
           } as GenerationTask;
         }
@@ -309,36 +322,16 @@ export default function IconGeneratorPage() {
     }
   };
 
-  const handleDownload = async (task: GenerationTask) => {
-    if (!task.uuid || task.status !== 'completed') return;
-
-    try {
-      const response = await fetch(`/api/icon/download/${task.uuid}`);
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.style.display = 'none';
-        a.href = url;
-        a.download = `icon-${task.uuid}.${task.format}`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        toast.success("下载完成！");
-      } else {
-        toast.error("下载失败");
-      }
-    } catch (error) {
-      console.error('Download failed:', error);
-      toast.error("下载失败");
-    }
-  };
 
   const clearResults = () => {
     if (currentBatch && !currentBatch.isGenerating) {
       setHistoryBatches(prev => [currentBatch, ...prev]);
     }
+    setCurrentBatch(null);
+  };
+
+  // 真正删除当前批次（不移动到历史记录）
+  const deleteCurrentBatch = () => {
     setCurrentBatch(null);
   };
 
@@ -401,8 +394,7 @@ export default function IconGeneratorPage() {
               {currentBatch && (
                 <IconGrid
                   batch={currentBatch}
-                  onDownload={handleDownload}
-                  onClear={clearResults}
+                  onClear={deleteCurrentBatch}
                 />
               )}
               
@@ -411,7 +403,6 @@ export default function IconGeneratorPage() {
                 <IconGrid
                   key={batch.id}
                   batch={batch}
-                  onDownload={handleDownload}
                   onClear={() => {
                     setHistoryBatches(prev => prev.filter(b => b.id !== batch.id));
                   }}

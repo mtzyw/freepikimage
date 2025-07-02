@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     const {
       prompt,
       style = "solid",
-      format = "png",
+      format = "svg", // 默认生成SVG格式，获得最佳质量
       num_inference_steps = 20,
       guidance_scale = 7
     } = body;
@@ -33,6 +33,15 @@ export async function POST(request: NextRequest) {
     if (!prompt || prompt.trim().length === 0) {
       return NextResponse.json(
         { error: "Prompt is required" },
+        { status: 400 }
+      );
+    }
+
+    // 验证格式参数
+    const validFormats = ['svg', 'png'];
+    if (!validFormats.includes(format)) {
+      return NextResponse.json(
+        { error: "Format must be 'svg' or 'png'" },
         { status: 400 }
       );
     }

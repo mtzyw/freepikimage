@@ -6,7 +6,7 @@ import type { ThirdPartyApiKey } from "@/types/third-party-api-key";
 export class ThirdPartyApiKeyModel {
   // 获取指定服务商的可用密钥（按 id 顺序轮询）
   static async getAvailableKeys(provider: string): Promise<ThirdPartyApiKey[]> {
-    return await db()
+    const result = await db()
       .select()
       .from(third_party_api_keys)
       .where(
@@ -16,6 +16,8 @@ export class ThirdPartyApiKeyModel {
         )
       )
       .orderBy(asc(third_party_api_keys.id));
+    
+    return result as ThirdPartyApiKey[];
   }
 
   // 标记密钥为禁用状态
@@ -28,7 +30,7 @@ export class ThirdPartyApiKeyModel {
         })
         .where(eq(third_party_api_keys.id, keyId));
       
-      return result.rowCount > 0;
+      return result.length > 0;
     } catch (error) {
       console.error('Failed to disable key:', error);
       return false;
@@ -45,7 +47,7 @@ export class ThirdPartyApiKeyModel {
         })
         .where(eq(third_party_api_keys.id, keyId));
       
-      return result.rowCount > 0;
+      return result.length > 0;
     } catch (error) {
       console.error('Failed to enable key:', error);
       return false;
@@ -65,7 +67,7 @@ export class ThirdPartyApiKeyModel {
         })
         .returning();
       
-      return result[0] || null;
+      return result[0] as ThirdPartyApiKey || null;
     } catch (error) {
       console.error('Failed to add API key:', error);
       return null;

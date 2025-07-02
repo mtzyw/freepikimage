@@ -5,6 +5,8 @@ export interface GenerationTask {
   style: string;
   format: string;
   image_url?: string;
+  svg_url?: string; // SVG格式URL
+  png_url?: string; // PNG格式URL
   error_message?: string;
   estimated_remaining?: number;
 }

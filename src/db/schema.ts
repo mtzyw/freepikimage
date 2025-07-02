@@ -155,11 +155,19 @@ export const icon_generations = pgTable("icon_generations", {
   guidance_scale: integer().default(7), // 0-10
   webhook_url: varchar({ length: 500 }), // webhook URL
   
-  // 存储相关
-  r2_key: varchar({ length: 500 }), // R2 存储的文件路径
-  r2_url: varchar({ length: 500 }), // R2 的公开访问 URL
+  // 存储相关（支持双格式）
+  svg_r2_key: varchar({ length: 500 }), // SVG格式的R2存储路径
+  svg_r2_url: varchar({ length: 500 }), // SVG格式的R2公开访问URL
+  png_r2_key: varchar({ length: 500 }), // PNG格式的R2存储路径
+  png_r2_url: varchar({ length: 500 }), // PNG格式的R2公开访问URL
   original_url: varchar({ length: 500 }), // Freepik 原始图片 URL
-  file_size: integer(), // 文件大小（字节）
+  svg_file_size: integer(), // SVG文件大小（字节）
+  png_file_size: integer(), // PNG文件大小（字节）
+  
+  // 兼容旧字段（保留以避免破坏性更改）
+  r2_key: varchar({ length: 500 }), // 已废弃，保持兼容性
+  r2_url: varchar({ length: 500 }), // 已废弃，保持兼容性
+  file_size: integer(), // 已废弃，保持兼容性
   
   // 业务逻辑
   credits_cost: integer().notNull().default(1), // 消耗的积分数

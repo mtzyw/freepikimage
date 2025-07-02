@@ -41,8 +41,17 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchUserInfo = async function () {
     try {
+      // 如果有 session，在请求中传递用户 UUID
+      const requestBody = session?.user?.uuid 
+        ? { user_uuid: session.user.uuid }
+        : {};
+
       const resp = await fetch("/api/get-user-info", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
       });
 
       if (!resp.ok) {

@@ -47,8 +47,13 @@ export async function GET(
 
     // 4. 根据状态添加相应信息
     if (generation.status === 'completed') {
-      response.image_url = generation.r2_url;
-      response.file_size = generation.file_size;
+      // 优先使用新的双格式字段，fallback到旧字段保持兼容性
+      response.image_url = generation.r2_url; // 兼容旧字段
+      response.svg_url = generation.svg_r2_url;
+      response.png_url = generation.png_r2_url;
+      response.file_size = generation.file_size; // 兼容旧字段
+      response.svg_file_size = generation.svg_file_size;
+      response.png_file_size = generation.png_file_size;
       response.generation_time = generation.generation_time;
     } else if (generation.status === 'failed') {
       response.error_message = generation.error_message;
