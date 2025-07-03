@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { IconGenerationModel } from "@/models/icon-generation";
+import { CacheService } from "@/services/cache";
+import { increaseCredits, CreditsTransType } from "@/services/credit";
+
+// 超时时间：100秒
+const GENERATION_TIMEOUT_MS = 100 * 1000;
 
 export async function GET(
   request: NextRequest,
@@ -20,7 +25,7 @@ export async function GET(
     const { uuid } = await params;
 
     // 3. 查询生成记录
-    const generation = await IconGenerationModel.findByUserAndUuid(
+    let generation = await IconGenerationModel.findByUserAndUuid(
       session.user.uuid,
       uuid
     );
@@ -30,6 +35,50 @@ export async function GET(
         { error: "Generation not found" },
         { status: 404 }
       );
+    }
+
+    // 4. 检查超时任务
+    if (generation.status === 'generating' && generation.started_at) {
+      const startTime = new Date(generation.started_at).getTime();
+      const now = Date.now();
+      const elapsedTime = now - startTime;
+
+      if (elapsedTime > GENERATION_TIMEOUT_MS) {
+        console.log(`⚠️ Task ${uuid} timed out after ${elapsedTime/1000}s, marking as failed`);
+        
+        // 更新数据库状态为失败
+        const timeoutUpdate = {
+          status: 'failed' as const,
+          error_message: '生成失败，积分已退还。请重试生成。',
+          completed_at: new Date()
+        };
+
+        const updateSuccess = await IconGenerationModel.updateByUuid(uuid, timeoutUpdate);
+        
+        if (updateSuccess) {
+          // 退还积分给用户
+          try {
+            await increaseCredits({
+              user_uuid: generation.user_uuid,
+              trans_type: CreditsTransType.SystemAdd,
+              credits: generation.credits_cost,
+              order_no: `timeout_refund_${uuid}`
+            });
+            console.log(`💰 Credits refunded for timeout task: ${uuid}, amount: ${generation.credits_cost}`);
+          } catch (error) {
+            console.error(`❌ Failed to refund credits for timeout task ${uuid}:`, error);
+          }
+
+          // 更新缓存
+          await CacheService.updateIcon(uuid, timeoutUpdate);
+          
+          // 更新本地对象
+          generation = { ...generation, ...timeoutUpdate };
+          console.log(`✅ Task ${uuid} marked as failed due to timeout`);
+        } else {
+          console.error(`❌ Failed to update timeout status for task ${uuid}`);
+        }
+      }
     }
 
     // 3. 返回状态信息

@@ -16,6 +16,9 @@ export class CacheService {
   // 默认TTL
   private static readonly DEFAULT_TTL = 300;
 
+  // 超时时间：100秒
+  private static readonly GENERATION_TIMEOUT_MS = 100 * 1000;
+
   /**
    * 生成缓存键
    */
@@ -254,5 +257,68 @@ export class CacheService {
       console.warn('Failed to get cache stats:', error);
       return { isConnected: false, totalKeys: 0, iconKeys: 0 };
     }
+  }
+
+  /**
+   * 检查图标是否超时，如果超时则更新为失败状态
+   * @param icon 图标生成记录
+   * @returns 更新后的图标记录，如果没有超时则返回原记录
+   */
+  static checkAndHandleTimeout(icon: IconGeneration): IconGeneration {
+    // 只处理 generating 状态的任务
+    if (icon.status !== 'generating' || !icon.started_at) {
+      return icon;
+    }
+
+    const startTime = new Date(icon.started_at).getTime();
+    const now = Date.now();
+    const elapsedTime = now - startTime;
+
+    if (elapsedTime > this.GENERATION_TIMEOUT_MS) {
+      console.log(`⚠️ Task ${icon.uuid} timed out after ${elapsedTime/1000}s in cache check`);
+      
+      // 返回更新后的对象，但不直接更新数据库
+      // 数据库更新应该在调用方处理
+      return {
+        ...icon,
+        status: 'failed',
+        error_message: '生成失败，积分已退还。请重试生成。',
+        completed_at: new Date()
+      };
+    }
+
+    return icon;
+  }
+
+  /**
+   * 批量检查和处理超时任务
+   * @param icons 图标生成记录数组
+   * @returns 处理后的图标记录数组和需要更新数据库的记录
+   */
+  static batchCheckAndHandleTimeouts(icons: IconGeneration[]): {
+    processedIcons: IconGeneration[];
+    timeoutUpdates: { uuid: string; updateData: Partial<IconGeneration> }[];
+  } {
+    const processedIcons: IconGeneration[] = [];
+    const timeoutUpdates: { uuid: string; updateData: Partial<IconGeneration> }[] = [];
+
+    icons.forEach(icon => {
+      const processedIcon = this.checkAndHandleTimeout(icon);
+      processedIcons.push(processedIcon);
+
+      // 如果状态发生了变化，记录需要更新的数据
+      if (processedIcon.status !== icon.status) {
+        timeoutUpdates.push({
+          uuid: icon.uuid,
+          updateData: {
+            status: processedIcon.status,
+            error_message: processedIcon.error_message,
+            completed_at: processedIcon.completed_at
+          }
+        });
+      }
+    });
+
+    return { processedIcons, timeoutUpdates };
   }
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { IconGenerationModel } from "@/models/icon-generation";
 import { CacheService } from "@/services/cache";
+import { increaseCredits, CreditsTransType } from "@/services/credit";
 import type { IconGeneration } from "@/types/icon-generation";
 
 export async function POST(request: NextRequest) {
@@ -148,12 +149,101 @@ async function batchQueryWithCache(userUuid: string, uuids: string[]): Promise<I
     // 添加数据库查询的数据
     allResults.push(...dbResults);
 
-    return allResults;
+    // 6. 检查和处理超时任务
+    const { processedIcons, timeoutUpdates } = CacheService.batchCheckAndHandleTimeouts(allResults);
+
+    // 7. 异步更新超时任务的数据库状态（不阻塞响应）
+    if (timeoutUpdates.length > 0) {
+      console.log(`Processing ${timeoutUpdates.length} timeout updates`);
+      
+      // 批量更新数据库
+      Promise.all(
+        timeoutUpdates.map(async ({ uuid, updateData }) => {
+          try {
+            // 查找原始记录以获取用户和积分信息
+            const originalIcon = allResults.find(icon => icon.uuid === uuid);
+            if (!originalIcon) {
+              console.error(`❌ Original icon record not found for timeout task ${uuid}`);
+              return;
+            }
+
+            await IconGenerationModel.updateByUuid(uuid, updateData);
+            
+            // 退还积分给用户
+            try {
+              await increaseCredits({
+                user_uuid: originalIcon.user_uuid,
+                trans_type: CreditsTransType.SystemAdd,
+                credits: originalIcon.credits_cost,
+                order_no: `timeout_refund_${uuid}`
+              });
+              console.log(`💰 Credits refunded for timeout task: ${uuid}, amount: ${originalIcon.credits_cost}`);
+            } catch (error) {
+              console.error(`❌ Failed to refund credits for timeout task ${uuid}:`, error);
+            }
+            
+            // 同时更新缓存
+            await CacheService.updateIcon(uuid, updateData);
+            console.log(`✅ Updated timeout task ${uuid}`);
+          } catch (error) {
+            console.error(`❌ Failed to update timeout task ${uuid}:`, error);
+          }
+        })
+      ).catch(error => {
+        console.error('❌ Error in batch timeout updates:', error);
+      });
+    }
+
+    return processedIcons;
 
   } catch (error) {
     console.warn('Cache query failed, falling back to database:', error);
     
     // 降级策略：缓存失败时直接查数据库
-    return await IconGenerationModel.batchGetByUserAndUuids(userUuid, uuids);
+    const dbResults = await IconGenerationModel.batchGetByUserAndUuids(userUuid, uuids);
+    
+    // 即使在降级模式下也要处理超时任务
+    const { processedIcons, timeoutUpdates } = CacheService.batchCheckAndHandleTimeouts(dbResults);
+    
+    // 异步更新超时任务（不阻塞响应）
+    if (timeoutUpdates.length > 0) {
+      console.log(`Processing ${timeoutUpdates.length} timeout updates in fallback mode`);
+      
+      Promise.all(
+        timeoutUpdates.map(async ({ uuid, updateData }) => {
+          try {
+            // 查找原始记录以获取用户和积分信息
+            const originalIcon = dbResults.find(icon => icon.uuid === uuid);
+            if (!originalIcon) {
+              console.error(`❌ Original icon record not found for timeout task ${uuid} in fallback mode`);
+              return;
+            }
+
+            await IconGenerationModel.updateByUuid(uuid, updateData);
+            
+            // 退还积分给用户
+            try {
+              await increaseCredits({
+                user_uuid: originalIcon.user_uuid,
+                trans_type: CreditsTransType.SystemAdd,
+                credits: originalIcon.credits_cost,
+                order_no: `timeout_refund_${uuid}`
+              });
+              console.log(`💰 Credits refunded for timeout task: ${uuid}, amount: ${originalIcon.credits_cost} (fallback mode)`);
+            } catch (error) {
+              console.error(`❌ Failed to refund credits for timeout task ${uuid} in fallback mode:`, error);
+            }
+
+            console.log(`✅ Updated timeout task ${uuid} in fallback mode`);
+          } catch (error) {
+            console.error(`❌ Failed to update timeout task ${uuid} in fallback mode:`, error);
+          }
+        })
+      ).catch(error => {
+        console.error('❌ Error in batch timeout updates (fallback mode):', error);
+      });
+    }
+    
+    return processedIcons;
   }
 }
