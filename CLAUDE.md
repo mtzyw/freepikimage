@@ -16,6 +16,7 @@ ShipAny Template One is a full-stack AI SaaS boilerplate built with Next.js 15, 
 - **Internationalization**: next-intl with English/Chinese support
 - **UI Components**: Radix UI + shadcn/ui components
 - **Styling**: Tailwind CSS with theme customization
+- **Caching**: Redis for icon generation caching and performance optimization
 
 ## Development Commands
 
@@ -60,6 +61,8 @@ pnpm db:push
 # GET /api/icon/status/:uuid - Check generation status
 # GET /api/icon/download/:uuid - Download generated icon
 # GET /api/icon/history - Get user's generation history
+# GET /api/icon/batch-status - Batch check generation status
+# DELETE /api/icon/delete/:uuid - Delete generated icon
 ```
 
 ### Other Commands
@@ -106,6 +109,13 @@ pnpm docker:build
 - Dashboard/Console: Admin and user panel components
 - Theme: Dark/light mode toggle support
 
+### Caching System
+- Redis integration for performance optimization in `src/lib/redis.ts`
+- Icon generation caching service in `src/services/cache.ts`
+- Supports graceful degradation when Redis is unavailable
+- Configurable TTL based on icon generation status
+- Batch operations for better performance
+
 ### Payment & Credits System
 - Stripe integration for subscriptions and one-time payments
 - Credit-based usage tracking in `credits` table
@@ -125,6 +135,7 @@ Environment variables are defined in `.env.example`. Key categories:
 - **Admin**: ADMIN_EMAILS for admin access control
 - **Freepik Integration**: API keys for Freepik icon generation service
 - **Theme**: NEXT_PUBLIC_DEFAULT_THEME for default UI theme
+- **Redis**: REDIS_URL, REDIS_HOST, REDIS_PORT, REDIS_PASSWORD for caching
 
 For development, copy `.env.example` to `.env.development` and configure required variables.
 The Drizzle config loads environment variables from multiple files: `.env`, `.env.development`, `.env.local`.
@@ -216,3 +227,11 @@ The project includes `.cursorrules` file with specific development guidelines:
 - Maintain responsive design principles across all UI components
 - Follow the .cursorrules conventions for consistent code style
 - Use the Freepik API for icon generation features following the documented parameters
+- Redis caching is designed with graceful degradation - the system continues to work when Redis is unavailable
+
+## Recent Updates
+
+- Added Redis caching system for icon generation performance optimization
+- Implemented batch operations for icon status checking and deletion
+- Enhanced icon generation system with improved error handling and caching
+- Added comprehensive cache management with configurable TTL based on generation status
