@@ -32,9 +32,6 @@ export function GenerationForm({
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">
             您想生成什么图标？ 
-            <span className="ml-2 text-xs text-muted-foreground">
-              💎 {userCredits}/4剩余图标
-            </span>
           </label>
           <div className="relative">
             <Input
@@ -75,10 +72,21 @@ export function GenerationForm({
           ))}
         </div>
 
+        {/* 积分不足警告 */}
+        {userCredits < 4 && (
+          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-center gap-2 text-amber-800">
+              <span className="text-sm">
+                ⚠️ 积分不足，生成图标需要至少4积分。当前积分：{userCredits}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* 生成按钮 */}
         <Button
           onClick={onGenerate}
-          disabled={isGenerating || !prompt.trim()}
+          disabled={isGenerating || !prompt.trim() || userCredits < 4}
           className="w-full py-4 text-base"
           size="lg"
         >
@@ -86,6 +94,11 @@ export function GenerationForm({
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
               ✨ 生成图标
+            </>
+          ) : userCredits < 4 ? (
+            <>
+              <Sparkles className="mr-2 h-5 w-5" />
+              积分不足，请充值
             </>
           ) : (
             <>

@@ -49,7 +49,7 @@ export async function GET(
         // 更新数据库状态为失败
         const timeoutUpdate = {
           status: 'failed' as const,
-          error_message: '生成失败，积分已退还。请重试生成。',
+          error_message: '生成失败，积分已退还。',
           completed_at: new Date()
         };
 
@@ -62,7 +62,8 @@ export async function GET(
               user_uuid: generation.user_uuid,
               trans_type: CreditsTransType.SystemAdd,
               credits: generation.credits_cost,
-              order_no: `timeout_refund_${uuid}`
+              order_no: `timeout_refund_${uuid}`,
+              expired_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() // 1年有效期
             });
             console.log(`💰 Credits refunded for timeout task: ${uuid}, amount: ${generation.credits_cost}`);
           } catch (error) {

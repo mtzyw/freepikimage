@@ -36,6 +36,12 @@ pnpm start
 
 # Linting
 pnpm lint
+
+# Bundle analysis
+pnpm analyze
+
+# Docker build
+pnpm docker:build
 ```
 
 ### Database Commands
@@ -65,13 +71,10 @@ pnpm db:push
 # DELETE /api/icon/delete/:uuid - Delete generated icon
 ```
 
-### Other Commands
+### Testing Commands
 ```bash
-# Bundle analysis
-pnpm analyze
-
-# Docker build
-pnpm docker:build
+# No testing framework is currently configured
+# To add testing, consider Jest, Vitest, or React Testing Library
 ```
 
 ## Key Architecture Patterns
@@ -127,15 +130,15 @@ pnpm docker:build
 Environment variables are defined in `.env.example`. Key categories:
 - **Web configuration**: NEXT_PUBLIC_WEB_URL, NEXT_PUBLIC_PROJECT_NAME
 - **Database**: DATABASE_URL (PostgreSQL connection string)
-- **NextAuth**: AUTH_SECRET, AUTH_URL, provider keys (Google/GitHub)
-- **Analytics**: Google Analytics, OpenPanel, Plausible tracking IDs
-- **Payments**: Stripe public/private keys and webhook secrets
-- **Storage**: AWS S3 compatible storage (endpoint, region, keys, bucket)
-- **AI providers**: API keys for OpenAI, Replicate, DeepSeek, etc.
+- **NextAuth**: AUTH_SECRET, AUTH_URL, AUTH_TRUST_HOST, provider keys (Google/GitHub)
+- **Analytics**: Google Analytics (NEXT_PUBLIC_GOOGLE_ANALYTICS_ID), OpenPanel (NEXT_PUBLIC_OPENPANEL_CLIENT_ID), Plausible (NEXT_PUBLIC_PLAUSIBLE_DOMAIN, NEXT_PUBLIC_PLAUSIBLE_SCRIPT_URL)
+- **Payments**: Stripe keys (STRIPE_PUBLIC_KEY, STRIPE_PRIVATE_KEY, STRIPE_WEBHOOK_SECRET) and payment URLs
+- **Storage**: AWS S3 compatible storage (STORAGE_ENDPOINT, STORAGE_REGION, STORAGE_ACCESS_KEY, STORAGE_SECRET_KEY, STORAGE_BUCKET, STORAGE_DOMAIN)
 - **Admin**: ADMIN_EMAILS for admin access control
-- **Freepik Integration**: API keys for Freepik icon generation service
 - **Theme**: NEXT_PUBLIC_DEFAULT_THEME for default UI theme
-- **Redis**: REDIS_URL, REDIS_HOST, REDIS_PORT, REDIS_PASSWORD for caching
+- **Redis**: REDIS_URL for caching (optional - system falls back to database if not configured)
+- **Google AdSense**: NEXT_PUBLIC_GOOGLE_ADCODE for advertisement
+- **Locale**: NEXT_PUBLIC_LOCALE_DETECTION for automatic locale detection
 
 For development, copy `.env.example` to `.env.development` and configure required variables.
 The Drizzle config loads environment variables from multiple files: `.env`, `.env.development`, `.env.local`.
@@ -152,9 +155,10 @@ The Drizzle config loads environment variables from multiple files: `.env`, `.en
 
 ## Testing & Quality
 
-- Use `pnpm lint` to check code quality
-- TypeScript strict mode enabled
+- Use `pnpm lint` to check code quality before committing
+- TypeScript strict mode enabled with path mapping (`@/*` -> `./src/*`)
 - ESLint configuration with Next.js rules
+- No testing framework currently configured - consider adding Jest, Vitest, or React Testing Library for new features
 - Always run linting before committing changes
 
 ## Deployment
@@ -229,9 +233,18 @@ The project includes `.cursorrules` file with specific development guidelines:
 - Use the Freepik API for icon generation features following the documented parameters
 - Redis caching is designed with graceful degradation - the system continues to work when Redis is unavailable
 
+## Development Workflow
+
+1. **Setup**: Copy `.env.example` to `.env.development` and configure required variables
+2. **Development**: Run `pnpm dev` to start development server with Turbopack
+3. **Database**: Use `pnpm db:studio` to inspect database, `pnpm db:generate` for schema changes
+4. **Quality**: Always run `pnpm lint` before committing
+5. **Icon Generation**: Test via `/icon-generator` page or API endpoints in `/api/icon/`
+
 ## Recent Updates
 
 - Added Redis caching system for icon generation performance optimization
 - Implemented batch operations for icon status checking and deletion
 - Enhanced icon generation system with improved error handling and caching
 - Added comprehensive cache management with configurable TTL based on generation status
+- Updated environment variable documentation to match current `.env.example`

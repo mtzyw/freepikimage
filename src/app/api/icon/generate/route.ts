@@ -63,11 +63,12 @@ export async function POST(request: NextRequest) {
 
     // 4. 检查用户积分
     const creditsRequired = 1; // 每个图标消耗1积分
+    const minCreditsRequired = 4; // 最少需要4积分才能生成
     const userCredits = await getUserCredits(session.user.uuid);
     
-    if (userCredits.left_credits < creditsRequired) {
+    if (userCredits.left_credits < minCreditsRequired) {
       return NextResponse.json(
-        { error: "Insufficient credits" },
+        { error: "积分不足，请充值", credits_required: minCreditsRequired, current_credits: userCredits.left_credits },
         { status: 402 }
       );
     }
@@ -184,7 +185,7 @@ export async function POST(request: NextRequest) {
       }
 
       return NextResponse.json(
-        { error: "Failed to start generation" },
+        { error: "图标生成失败，请重试" },
         { status: 500 }
       );
     }

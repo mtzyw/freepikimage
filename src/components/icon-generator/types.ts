@@ -18,6 +18,7 @@ export interface GenerationBatch {
   format: string;
   tasks: GenerationTask[];
   isGenerating: boolean;
+  createdAt?: Date;
 }
 
 export const ICON_STYLES = [

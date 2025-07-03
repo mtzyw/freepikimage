@@ -31,6 +31,7 @@ import LocaleToggle from "@/components/locale/toggle";
 import { Menu } from "lucide-react";
 import SignToggle from "@/components/sign/toggle";
 import ThemeToggle from "@/components/theme/toggle";
+import { CreditsDisplay } from "@/components/user/credits-display";
 import { cn } from "@/lib/utils";
 
 export default function Header({ header }: { header: HeaderType }) {
@@ -146,6 +147,9 @@ export default function Header({ header }: { header: HeaderType }) {
           <div className="shrink-0 flex gap-2 items-center">
             {header.show_locale && <LocaleToggle />}
             {header.show_theme && <ThemeToggle />}
+
+            {/* 积分显示组件 */}
+            <CreditsDisplay />
 
             {header.buttons?.map((item, i) => {
               return (
@@ -279,6 +283,9 @@ export default function Header({ header }: { header: HeaderType }) {
                 <div className="flex-1"></div>
                 <div className="border-t pt-4">
                   <div className="mt-2 flex flex-col gap-3">
+                    {/* 移动版积分显示 */}
+                    <CreditsDisplay />
+
                     {header.buttons?.map((item, i) => {
                       return (
                         <Button key={i} variant={item.variant}>

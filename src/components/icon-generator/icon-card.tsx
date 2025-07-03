@@ -18,12 +18,12 @@ export function IconCard({ task, index, onClick }: IconCardProps) {
   };
 
   return (
-    <Card className={`aspect-square h-32 w-32 relative overflow-hidden transition-all duration-200 ${
+    <Card className={`aspect-square h-32 w-32 relative overflow-hidden transition-all duration-200 bg-white border-none shadow-none ${
       task.status === 'completed' && (task.image_url || task.svg_url || task.png_url)
         ? 'cursor-pointer hover:shadow-lg hover:scale-105' 
         : ''
     }`}>
-      <CardContent className="p-3 h-full flex flex-col items-center justify-center">
+      <CardContent className="p-3 h-full flex flex-col items-center justify-center bg-white">
         {task.status === 'pending' || task.status === 'generating' ? (
           <div className="flex flex-col items-center justify-center h-full">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-2" />

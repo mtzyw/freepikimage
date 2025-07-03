@@ -31,10 +31,10 @@ export function Sidebar({ className }: SidebarProps) {
       isActive: pathname === "/"
     },
     {
-      title: "项目",
+      title: "历史记录",
       icon: FolderOpen,
-      href: "/projects",
-      isActive: pathname.startsWith("/projects")
+      href: "/history",
+      isActive: pathname.startsWith("/history")
     },
     {
       title: "AI套装",
@@ -63,11 +63,11 @@ export function Sidebar({ className }: SidebarProps) {
       className
     )}>
       {/* Logo区域 */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
         {!isCollapsed && (
-          <Link href="/" className="flex items-center">
-            <div className="text-2xl font-bold text-blue-600">FREEPIK</div>
-          </Link>
+          <div className="flex items-center justify-center flex-1 mr-2">
+          <div className="text-xl font-semibold text-gray-800">工作区</div>
+        </div>
         )}
         <Button
           variant="ghost"
@@ -107,15 +107,6 @@ export function Sidebar({ className }: SidebarProps) {
           })}
         </ul>
       </nav>
-
-      {/* 底部区域 */}
-      {!isCollapsed && (
-        <div className="p-4 border-t border-gray-200">
-          <div className="text-xs text-gray-500 text-center">
-            ShipAny Template
-          </div>
-        </div>
-      )}
     </div>
   );
 }

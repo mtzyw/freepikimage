@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { IconCard } from "./icon-card";
 import { IconDetailDialog } from "./icon-detail-dialog";
 import { toast } from "sonner";
+import { Trash2 } from "lucide-react";
 import type { GenerationTask, GenerationBatch } from "./types";
 import { ICON_STYLES } from "./types";
 
@@ -111,7 +112,13 @@ export function IconGrid({ batch, onClear, isHistory = false }: IconGridProps) {
           </h3>
         </div>
         {!batch.isGenerating && (
-          <Button variant="ghost" size="sm" onClick={handleDelete}>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleDelete}
+            className="flex items-center gap-2 rounded-full border-gray-300 text-gray-600 hover:bg-gray-50"
+          >
+            <Trash2 className="h-4 w-4" />
             移除
           </Button>
         )}

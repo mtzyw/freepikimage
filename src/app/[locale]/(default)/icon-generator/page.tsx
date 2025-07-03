@@ -21,6 +21,37 @@ export default function IconGeneratorPage() {
   const [currentBatch, setCurrentBatch] = useState<GenerationBatch | null>(null);
   const [historyBatches, setHistoryBatches] = useState<GenerationBatch[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [userCredits, setUserCredits] = useState(0);
+
+  // 获取用户积分
+  useEffect(() => {
+    const fetchUserCredits = async () => {
+      if (!session?.user?.uuid) return;
+      
+      try {
+        const response = await fetch('/api/get-user-credits');
+        if (response.ok) {
+          const result = await response.json();
+          
+          // 处理不同的响应格式
+          if (result.code === 0 && result.data?.credits?.left_credits !== undefined) {
+            // 用户信息格式：{code: 0, data: {credits: {left_credits: 6}}}
+            setUserCredits(result.data.credits.left_credits);
+          } else if (result.code === 0 && result.data?.left_credits !== undefined) {
+            // 直接积分格式：{code: 0, data: {left_credits: 6}}
+            setUserCredits(result.data.left_credits);
+          } else if (result.left_credits !== undefined) {
+            // 旧格式：{left_credits: 6}
+            setUserCredits(result.left_credits);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch user credits:', error);
+      }
+    };
+
+    fetchUserCredits();
+  }, [session?.user?.uuid]);
 
   // 加载历史记录和恢复最近的生成批次
   useEffect(() => {
@@ -235,8 +266,32 @@ export default function IconGeneratorPage() {
         
         if (successCount > 0) {
           toast.success(`生成完成！成功 ${successCount} 个，失败 ${failCount} 个`);
+          // 生成完成后更新积分
+          const fetchUserCredits = async () => {
+            try {
+              const response = await fetch('/api/get-user-credits');
+              if (response.ok) {
+                const result = await response.json();
+                
+                // 处理不同的响应格式
+                if (result.code === 0 && result.data?.credits?.left_credits !== undefined) {
+                  // 用户信息格式：{code: 0, data: {credits: {left_credits: 6}}}
+                  setUserCredits(result.data.credits.left_credits);
+                } else if (result.code === 0 && result.data?.left_credits !== undefined) {
+                  // 直接积分格式：{code: 0, data: {left_credits: 6}}
+                  setUserCredits(result.data.left_credits);
+                } else if (result.left_credits !== undefined) {
+                  // 旧格式：{left_credits: 6}
+                  setUserCredits(result.left_credits);
+                }
+              }
+            } catch (error) {
+              console.error('Failed to fetch user credits:', error);
+            }
+          };
+          fetchUserCredits();
         } else {
-          toast.error("所有图标生成失败");
+          toast.error("生成失败,积分已退还,请重试");
         }
       }
     };
@@ -315,6 +370,10 @@ export default function IconGeneratorPage() {
               format: 'svg' // 改为SVG格式
             } as GenerationTask;
           } else {
+            // 检查是否是积分不足错误
+            if (response.status === 402) {
+              throw new Error(data.error || "积分不足，请充值");
+            }
             return {
               uuid: `failed-${index}`,
               status: 'failed',
@@ -325,6 +384,10 @@ export default function IconGeneratorPage() {
             } as GenerationTask;
           }
         } catch (error) {
+          // 如果是积分不足错误，抛出让外层处理
+          if (error instanceof Error && error.message.includes("积分不足")) {
+            throw error;
+          }
           return {
             uuid: `failed-${index}`,
             status: 'failed',
@@ -352,7 +415,14 @@ export default function IconGeneratorPage() {
 
     } catch (error) {
       console.error('Generation failed:', error);
-      toast.error("生成失败，请重试");
+      
+      // 检查是否是积分不足错误
+      if (error instanceof Error && error.message.includes("积分不足")) {
+        toast.error("积分不足，请充值。生成图标需要至少4积分。");
+      } else {
+        toast.error("生成失败，请重试");
+      }
+      
       setCurrentBatch(null);
     }
   };
@@ -372,9 +442,9 @@ export default function IconGeneratorPage() {
 
   if (!session) {
     return (
-      <div className="flex h-screen">
+      <div className="flex min-h-screen bg-white">
         <Sidebar />
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center bg-white">
           <div className="text-center max-w-md">
             <h1 className="text-3xl font-bold mb-4 flex items-center justify-center gap-2">
               <Sparkles className="h-8 w-8 text-blue-500" />
@@ -392,14 +462,14 @@ export default function IconGeneratorPage() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-white">
       {/* 左侧菜单栏 */}
       <Sidebar />
 
       {/* 主内容区域 */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col">
         {/* 顶部标题 */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="bg-white border-b border-gray-200 px-4 py-3">
           <div className="flex items-center justify-center">
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <Sparkles className="h-6 w-6 text-blue-500" />
@@ -410,8 +480,8 @@ export default function IconGeneratorPage() {
         </div>
 
         {/* 内容区域 */}
-        <div className="flex-1 overflow-auto">
-          <div className="max-w-2xl mx-auto p-6">
+        <div className="flex-1 bg-white">
+          <div className="max-w-2xl mx-auto p-4">
             {/* 生成表单 */}
             <GenerationForm
               prompt={prompt}
@@ -420,7 +490,7 @@ export default function IconGeneratorPage() {
               onStyleChange={setActiveStyle}
               isGenerating={currentBatch?.isGenerating || false}
               onGenerate={handleGenerate}
-              userCredits={session?.user?.credits || 0}
+              userCredits={userCredits}
             />
 
             {/* 生成结果和历史记录 */}
@@ -433,8 +503,8 @@ export default function IconGeneratorPage() {
                 />
               )}
               
-              {/* 历史批次 */}
-              {historyBatches.map((batch) => (
+              {/* 历史批次 - 只显示最近的3个 */}
+              {historyBatches.slice(0, 3).map((batch) => (
                 <IconGrid
                   key={batch.id}
                   batch={batch}
@@ -444,6 +514,15 @@ export default function IconGeneratorPage() {
                   isHistory={true}
                 />
               ))}
+              
+              {/* 更多历史记录提示 */}
+              {historyBatches.length > 3 && (
+                <div className="text-center py-4">
+                  <p className="text-sm text-muted-foreground">
+                    还有 {historyBatches.length - 3} 个历史任务，请前往历史记录页面查看
+                  </p>
+                </div>
+              )}
               
               {/* 空状态（只在没有任何批次时显示） */}
               {!currentBatch && historyBatches.length === 0 && (

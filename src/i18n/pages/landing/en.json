@@ -29,17 +29,9 @@
         }
       ]
     },
-    "buttons": [
-      {
-        "title": "Get ShipAny",
-        "url": "https://shipany.ai",
-        "target": "_blank",
-        "variant": "link",
-        "icon": "RiArrowRightUpLine"
-      }
-    ],
+    "buttons": [],
     "show_sign": true,
-    "show_theme": true,
+    "show_theme": false,
     "show_locale": true
   },
   "hero": {

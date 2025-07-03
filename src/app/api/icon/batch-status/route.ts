@@ -175,7 +175,8 @@ async function batchQueryWithCache(userUuid: string, uuids: string[]): Promise<I
                 user_uuid: originalIcon.user_uuid,
                 trans_type: CreditsTransType.SystemAdd,
                 credits: originalIcon.credits_cost,
-                order_no: `timeout_refund_${uuid}`
+                order_no: `timeout_refund_${uuid}`,
+                expired_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() // 1年有效期
               });
               console.log(`💰 Credits refunded for timeout task: ${uuid}, amount: ${originalIcon.credits_cost}`);
             } catch (error) {
@@ -227,7 +228,8 @@ async function batchQueryWithCache(userUuid: string, uuids: string[]): Promise<I
                 user_uuid: originalIcon.user_uuid,
                 trans_type: CreditsTransType.SystemAdd,
                 credits: originalIcon.credits_cost,
-                order_no: `timeout_refund_${uuid}`
+                order_no: `timeout_refund_${uuid}`,
+                expired_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() // 1年有效期
               });
               console.log(`💰 Credits refunded for timeout task: ${uuid}, amount: ${originalIcon.credits_cost} (fallback mode)`);
             } catch (error) {

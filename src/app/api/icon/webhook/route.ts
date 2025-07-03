@@ -198,7 +198,8 @@ export async function POST(request: NextRequest) {
             user_uuid: record.user_uuid,
             trans_type: CreditsTransType.SystemAdd,
             credits: record.credits_cost,
-            order_no: `refund_${record.uuid}`
+            order_no: `refund_${record.uuid}`,
+            expired_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() // 1年有效期
           });
           console.log('Credits refunded for failed generation:', record.uuid);
         } catch (error) {
