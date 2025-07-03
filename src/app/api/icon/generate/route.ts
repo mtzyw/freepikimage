@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
       await db()
         .update(icon_generations)
         .set({
-          freepik_task_id: freepikData.task_id,
+          freepik_task_id: freepikData.data.task_id, // 修正：Freepik返回的task_id在data对象中
           status: 'generating',
           started_at: new Date()
         })
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         uuid: generationUuid,
-        taskId: freepikData.task_id,
+        taskId: freepikData.data.task_id, // 修正：返回正确的task_id
         status: 'generating',
         estimatedTime: 30 // 估计30秒完成
       });

@@ -30,8 +30,8 @@ export async function POST(request: NextRequest) {
     let record: any = null;
     
     if (webhookData.task_id) {
-      // 首先尝试通过 task_id 查找
-      record = await IconGenerationModel.findByTaskId(webhookData.task_id);
+      // 首先尝试通过 task_id 查找（修正方法名）
+      record = await IconGenerationModel.findByFreepikTaskId(webhookData.task_id);
     }
     
     if (!record && uuid) {
@@ -53,8 +53,15 @@ export async function POST(request: NextRequest) {
       status: record.status
     });
 
-    // 4. 处理生成完成
-    if (webhookData.status === 'COMPLETED' && webhookData.generated && webhookData.generated.length > 0) {
+    // 4. 处理不同状态
+    if (webhookData.status === 'IN_PROGRESS') {
+      // 更新状态为正在生成
+      await IconGenerationModel.updateByUuid(record.uuid, {
+        status: 'generating'
+      });
+      console.log('Icon generation in progress:', record.uuid);
+      
+    } else if (webhookData.status === 'COMPLETED' && webhookData.generated && webhookData.generated.length > 0) {
       try {
         // 下载图片并上传到 R2 (现在支持双格式)
         const imageUrl = webhookData.generated[0]; // 取第一张图片

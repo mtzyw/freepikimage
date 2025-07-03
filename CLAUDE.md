@@ -52,6 +52,16 @@ pnpm db:studio
 pnpm db:push
 ```
 
+### Icon Generation Commands
+```bash
+# The icon generation system uses async processing with webhooks
+# No direct CLI commands, but API endpoints are available:
+# POST /api/icon/generate - Start icon generation
+# GET /api/icon/status/:uuid - Check generation status
+# GET /api/icon/download/:uuid - Download generated icon
+# GET /api/icon/history - Get user's generation history
+```
+
 ### Other Commands
 ```bash
 # Bundle analysis
@@ -81,7 +91,8 @@ pnpm docker:build
 - Kling AI provider for video generation in `src/aisdk/kling/`
 - Support for multiple AI providers (OpenAI, Replicate, DeepSeek) via @ai-sdk packages
 - Video generation API endpoints in `src/app/api/demo/`
-- Icon generation capabilities (planned/in development) via `/api/icon/` endpoints
+- Icon generation system integrated with Freepik API via `/api/icon/` endpoints
+- Third-party API key rotation system in `src/services/third-party-api-key.ts`
 
 ### Internationalization
 - Configured with next-intl
@@ -112,8 +123,11 @@ Environment variables are defined in `.env.example`. Key categories:
 - **Storage**: AWS S3 compatible storage (endpoint, region, keys, bucket)
 - **AI providers**: API keys for OpenAI, Replicate, DeepSeek, etc.
 - **Admin**: ADMIN_EMAILS for admin access control
+- **Freepik Integration**: API keys for Freepik icon generation service
+- **Theme**: NEXT_PUBLIC_DEFAULT_THEME for default UI theme
 
 For development, copy `.env.example` to `.env.development` and configure required variables.
+The Drizzle config loads environment variables from multiple files: `.env`, `.env.development`, `.env.local`.
 
 ## File Structure Conventions
 
@@ -173,6 +187,25 @@ The project includes an AI-powered icon generator (see `AI_ICON_GENERATOR_PLAN.m
 - Support for multiple AI providers and output formats (PNG, SVG, ICO)
 - Frontend components in `src/components/icon-generator/`
 
+## Freepik API Integration
+
+The project integrates with Freepik's AI icon generation API:
+- API documentation available in `freepikapi文档` file
+- Supports text-to-icon generation with different styles (solid, outline, color, flat, sticker)  
+- Supports multiple formats (PNG, SVG)
+- Uses webhook-based async processing
+- Requires Freepik API key authentication
+- API endpoint: `/v1/ai/text-to-icon`
+
+## Cursor Rules Integration
+
+The project includes `.cursorrules` file with specific development guidelines:
+- Emphasizes TypeScript and React functional components
+- Mandates Tailwind CSS and shadcn/ui usage
+- Defines clear file structure conventions
+- Specifies component naming (CamelCase) and modular design patterns
+- Integrates with next-auth, next-intl, and Stripe
+
 ## Important Considerations
 
 - Always run `pnpm lint` before committing changes
@@ -181,3 +214,5 @@ The project includes an AI-powered icon generator (see `AI_ICON_GENERATOR_PLAN.m
 - Test database changes with `pnpm db:studio` before pushing migrations
 - Ensure proper TypeScript typing for all new components and functions
 - Maintain responsive design principles across all UI components
+- Follow the .cursorrules conventions for consistent code style
+- Use the Freepik API for icon generation features following the documented parameters

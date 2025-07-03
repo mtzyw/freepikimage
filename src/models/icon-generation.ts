@@ -15,16 +15,6 @@ export class IconGenerationModel {
     return result[0] as IconGeneration || null;
   }
 
-  // 根据 Freepik Task ID 查找记录
-  static async findByTaskId(taskId: string): Promise<IconGeneration | null> {
-    const result = await db()
-      .select()
-      .from(icon_generations)
-      .where(eq(icon_generations.freepik_task_id, taskId))
-      .limit(1);
-    
-    return result[0] as IconGeneration || null;
-  }
 
   // 根据用户和 UUID 查找生成记录
   static async findByUserAndUuid(userUuid: string, uuid: string): Promise<IconGeneration | null> {

@@ -59,7 +59,7 @@ export interface IconGenerationResponse {
 export interface FreepikWebhookPayload {
   task_id: string;
   request_id: string;
-  status: 'COMPLETED' | 'FAILED';
+  status: 'CREATED' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED';
   generated?: string[]; // 生成的图片 URL 数组
   error?: string;
 }
