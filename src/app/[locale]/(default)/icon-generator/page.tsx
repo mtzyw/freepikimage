@@ -147,66 +147,101 @@ export default function IconGeneratorPage() {
 
     const pollStatus = async () => {
       try {
-        const updatedTasks = await Promise.all(
-          currentBatch.tasks.map(async (task) => {
-            if (task.status === 'completed' || task.status === 'failed') {
-              return task;
-            }
+        // 获取需要查询的有效UUID
+        const validUuids = currentBatch.tasks
+          .filter(task => 
+            task.uuid && 
+            !task.uuid.includes('failed-') && 
+            task.status !== 'completed' && 
+            task.status !== 'failed'
+          )
+          .map(task => task.uuid);
 
-            // 验证UUID有效性
-            if (!task.uuid || task.uuid.includes('failed-')) {
-              console.warn('⚠️ 跳过无效任务:', task.uuid);
-              return task;
-            }
+        // 使用批量查询API
+        if (validUuids.length > 0) {
+          console.log('🔄 批量轮询状态:', validUuids);
+          
+          const response = await fetch('/api/icon/batch-status', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ uuids: validUuids }),
+          });
 
-            try {
-              console.log('🔄 轮询状态:', task.uuid, task.status);
-              const response = await fetch(`/api/icon/status/${task.uuid}`);
-              console.log('📡 状态响应:', response.status, response.url);
-              if (response.ok) {
-                const taskData = await response.json();
-                console.log('✅ 状态数据:', taskData);
+          if (response.ok) {
+            const batchData = await response.json();
+            console.log('📡 批量状态响应:', batchData);
+
+            // 更新任务状态
+            const updatedTasks = currentBatch.tasks.map(task => {
+              // 如果是已完成或失败的任务，保持不变
+              if (task.status === 'completed' || task.status === 'failed') {
+                return task;
+              }
+
+              // 如果是无效UUID，保持不变
+              if (!task.uuid || task.uuid.includes('failed-')) {
+                return task;
+              }
+
+              // 从批量响应中获取最新状态
+              const latestData = batchData[task.uuid];
+              if (latestData && latestData.status !== 'not_found') {
+                console.log('✅ 更新任务状态:', task.uuid, latestData.status);
                 return {
                   ...task,
-                  ...taskData
+                  ...latestData
                 };
               }
-            } catch (error) {
-              console.error(`Failed to poll status for ${task.uuid}:`, error);
-            }
-            return task;
-          })
-        );
 
-        const allCompleted = updatedTasks.every(task => 
-          task.status === 'completed' || task.status === 'failed'
-        );
+              return task;
+            });
 
-        setCurrentBatch(prev => {
-          if (!prev) return prev;
-          return {
-            ...prev,
-            tasks: updatedTasks,
-            isGenerating: !allCompleted
-          };
-        });
-
-        if (allCompleted) {
-          const successCount = updatedTasks.filter(task => task.status === 'completed').length;
-          const failCount = updatedTasks.filter(task => task.status === 'failed').length;
-          
-          if (successCount > 0) {
-            toast.success(`生成完成！成功 ${successCount} 个，失败 ${failCount} 个`);
+            return updatedTasks;
           } else {
-            toast.error("所有图标生成失败");
+            console.error('批量状态查询失败:', response.status, response.statusText);
+            return currentBatch.tasks;
           }
+        } else {
+          // 没有需要查询的UUID，直接返回当前任务
+          return currentBatch.tasks;
         }
       } catch (error) {
-        console.error('Failed to poll status:', error);
+        console.error('批量状态查询出错:', error);
+        return currentBatch.tasks;
       }
     };
 
-    const interval = setInterval(pollStatus, 3000);
+    const updateTasks = async () => {
+      const updatedTasks = await pollStatus();
+
+      const allCompleted = updatedTasks.every(task => 
+        task.status === 'completed' || task.status === 'failed'
+      );
+
+      setCurrentBatch(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          tasks: updatedTasks,
+          isGenerating: !allCompleted
+        };
+      });
+
+      if (allCompleted) {
+        const successCount = updatedTasks.filter(task => task.status === 'completed').length;
+        const failCount = updatedTasks.filter(task => task.status === 'failed').length;
+        
+        if (successCount > 0) {
+          toast.success(`生成完成！成功 ${successCount} 个，失败 ${failCount} 个`);
+        } else {
+          toast.error("所有图标生成失败");
+        }
+      }
+    };
+
+    const interval = setInterval(updateTasks, 3000);
     return () => clearInterval(interval);
   }, [currentBatch]);
 

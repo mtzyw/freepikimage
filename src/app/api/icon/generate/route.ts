@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { icon_generations } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { ThirdPartyApiKeyService } from "@/services/third-party-api-key";
+import { CacheService } from "@/services/cache";
 import { getUserCredits, decreaseCredits, CreditsTransType } from "@/services/credit";
 import { v4 as uuidv4 } from "uuid";
 import type { IconGenerationRequest } from "@/types/icon-generation";
@@ -85,23 +86,30 @@ export async function POST(request: NextRequest) {
     const webhookUrl = `${process.env.NEXT_PUBLIC_WEB_URL}/api/icon/webhook`;
 
     // 7. 创建数据库记录
+    const newRecord = {
+      uuid: generationUuid,
+      user_uuid: session.user.uuid,
+      prompt: prompt.trim(),
+      style,
+      format,
+      status: 'pending',
+      provider: 'freepik',
+      num_inference_steps,
+      guidance_scale,
+      webhook_url: webhookUrl,
+      credits_cost: creditsRequired,
+      created_at: new Date()
+    };
+
     const iconGeneration = await db()
       .insert(icon_generations)
-      .values({
-        uuid: generationUuid,
-        user_uuid: session.user.uuid,
-        prompt: prompt.trim(),
-        style,
-        format,
-        status: 'pending',
-        provider: 'freepik',
-        num_inference_steps,
-        guidance_scale,
-        webhook_url: webhookUrl,
-        credits_cost: creditsRequired,
-        created_at: new Date()
-      })
+      .values(newRecord)
       .returning();
+
+    // 预设缓存
+    CacheService.setIcon(generationUuid, { ...newRecord, id: iconGeneration[0].id } as any).catch(error => {
+      console.warn('Failed to cache new generation record:', error);
+    });
 
     // 8. 调用 Freepik API
     try {
@@ -130,14 +138,22 @@ export async function POST(request: NextRequest) {
       console.log('Freepik API response:', JSON.stringify(freepikData, null, 2));
 
       // 9. 更新数据库记录，添加 Freepik 任务 ID
+      const updateData = {
+        freepik_task_id: freepikData.data.task_id, // 修正：Freepik返回的task_id在data对象中
+        status: 'generating',
+        started_at: new Date()
+      };
+
       await db()
         .update(icon_generations)
-        .set({
-          freepik_task_id: freepikData.data.task_id, // 修正：Freepik返回的task_id在data对象中
-          status: 'generating',
-          started_at: new Date()
-        })
+        .set(updateData)
         .where(eq(icon_generations.uuid, generationUuid));
+
+      // 同步更新缓存
+      const fullRecord = { ...newRecord, id: iconGeneration[0].id, ...updateData };
+      CacheService.updateIcon(generationUuid, fullRecord).catch(error => {
+        console.warn('Failed to update cache after generation start:', error);
+      });
 
       // 10. 扣除积分
       await decreaseCredits({

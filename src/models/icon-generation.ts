@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { icon_generations } from "@/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, inArray } from "drizzle-orm";
 import type { IconGeneration } from "@/types/icon-generation";
 
 export class IconGenerationModel {
@@ -97,7 +97,10 @@ export class IconGenerationModel {
         .set(data)
         .where(eq(icon_generations.uuid, uuid));
       
-      return result.length > 0;
+      // Drizzle ORM 更新操作成功时返回空数组 []
+      // 只要没有抛出异常，就认为更新成功
+      console.log(`✅ Database update successful for ${uuid}`);
+      return true;
     } catch (error) {
       console.error('Failed to update icon generation:', error);
       return false;
@@ -179,6 +182,25 @@ export class IconGenerationModel {
       .from(icon_generations)
       .where(eq(icon_generations.status, 'generating'))
       .orderBy(desc(icon_generations.started_at));
+    
+    return records as IconGeneration[];
+  }
+
+  // 批量根据用户和UUID查找生成记录
+  static async batchGetByUserAndUuids(userUuid: string, uuids: string[]): Promise<IconGeneration[]> {
+    if (uuids.length === 0) return [];
+    
+    const records = await db()
+      .select()
+      .from(icon_generations)
+      .where(
+        and(
+          eq(icon_generations.user_uuid, userUuid),
+          // 使用 inArray 进行批量查询
+          inArray(icon_generations.uuid, uuids)
+        )
+      )
+      .orderBy(desc(icon_generations.created_at));
     
     return records as IconGeneration[];
   }
