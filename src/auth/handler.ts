@@ -8,7 +8,8 @@ import { getClientIp } from "@/lib/ip";
 
 export async function handleSignInUser(
   user: User | AdapterUser,
-  account: Account
+  account: Account,
+  clientIp?: string
 ): Promise<UserType | null> {
   try {
     if (!user.email) {
@@ -17,6 +18,9 @@ export async function handleSignInUser(
     if (!account.type || !account.provider || !account.providerAccountId) {
       throw new Error("invalid signin account");
     }
+
+    // 在 NextAuth callbacks 中使用 fallback IP
+    const ip = clientIp || await getClientIp("unknown");
 
     const userInfo: UserType = {
       uuid: getUuid(),
@@ -27,7 +31,7 @@ export async function handleSignInUser(
       signin_provider: account.provider,
       signin_openid: account.providerAccountId,
       created_at: new Date(),
-      signin_ip: await getClientIp(),
+      signin_ip: ip,
     };
 
     const savedUser = await saveUser(userInfo);

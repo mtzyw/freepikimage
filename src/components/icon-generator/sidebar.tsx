@@ -8,6 +8,7 @@ import {
   FolderOpen, 
   Sparkles, 
   Image, 
+  Crown,
   MoreHorizontal,
   ChevronLeft,
   ChevronRight
@@ -47,6 +48,12 @@ export function Sidebar({ className }: SidebarProps) {
       icon: Image,
       href: "/gallery",
       isActive: pathname.startsWith("/gallery")
+    },
+    {
+      title: "定价方案",
+      icon: Crown,
+      href: "/icon-pricing",
+      isActive: pathname.startsWith("/icon-pricing")
     },
     {
       title: "更多",

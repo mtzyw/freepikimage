@@ -75,10 +75,20 @@ export function GenerationForm({
         {/* 积分不足警告 */}
         {userCredits < 4 && (
           <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <div className="flex items-center gap-2 text-amber-800">
-              <span className="text-sm">
-                ⚠️ 积分不足，生成图标需要至少4积分。当前积分：{userCredits}
-              </span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-amber-800">
+                <span className="text-sm">
+                  ⚠️ 积分不足，生成图标需要至少4积分。当前积分：{userCredits}
+                </span>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.location.href = '/icon-pricing'}
+                className="bg-amber-600 text-white border-amber-600 hover:bg-amber-700 hover:border-amber-700"
+              >
+                立即充值
+              </Button>
             </div>
           </div>
         )}

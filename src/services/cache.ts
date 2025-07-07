@@ -16,8 +16,8 @@ export class CacheService {
   // 默认TTL
   private static readonly DEFAULT_TTL = 300;
 
-  // 超时时间：100秒
-  private static readonly GENERATION_TIMEOUT_MS = 100 * 1000;
+  // 超时时间：120秒
+  private static readonly GENERATION_TIMEOUT_MS = 120 * 1000;
 
   /**
    * 生成缓存键

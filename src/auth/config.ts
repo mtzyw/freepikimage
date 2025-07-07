@@ -122,14 +122,27 @@ export const authOptions: NextAuthConfig = {
   },
   callbacks: {
     async signIn({ user, account, profile, email, credentials }) {
-      const isAllowedToSignIn = true;
-      if (isAllowedToSignIn) {
+      try {
+        if (!user || !account) {
+          return false;
+        }
+
+        // 在 signIn callback 中处理用户信息（这里有 request context）
+        const clientIp = await getClientIp("unknown");
+        const userInfo = await handleSignInUser(user, account, clientIp);
+        
+        if (!userInfo) {
+          console.error("Failed to save user information");
+          return false;
+        }
+
+        // 将用户信息添加到 user 对象中，供 JWT callback 使用
+        user.userInfo = userInfo;
+        
         return true;
-      } else {
-        // Return false to display a default error message
+      } catch (error) {
+        console.error("signIn callback error:", error);
         return false;
-        // Or you can return a URL to redirect to:
-        // return '/unauthorized'
       }
     },
     async redirect({ url, baseUrl }) {
@@ -140,30 +153,24 @@ export const authOptions: NextAuthConfig = {
       return baseUrl;
     },
     async session({ session, token, user }) {
-      if (token && token.user && token.user) {
+      if (token && token.user) {
         session.user = token.user;
       }
       return session;
     },
     async jwt({ token, user, account }) {
-      // Persist the OAuth access_token and or the user id to the token right after signin
       try {
-        if (!user || !account) {
-          return token;
+        // 如果有新的用户登录且用户信息已在 signIn callback 中处理
+        if (user && user.userInfo) {
+          const userInfo = user.userInfo;
+          token.user = {
+            uuid: userInfo.uuid,
+            email: userInfo.email,
+            nickname: userInfo.nickname,
+            avatar_url: userInfo.avatar_url,
+            created_at: userInfo.created_at,
+          };
         }
-
-        const userInfo = await handleSignInUser(user, account);
-        if (!userInfo) {
-          throw new Error("save user failed");
-        }
-
-        token.user = {
-          uuid: userInfo.uuid,
-          email: userInfo.email,
-          nickname: userInfo.nickname,
-          avatar_url: userInfo.avatar_url,
-          created_at: userInfo.created_at,
-        };
 
         return token;
       } catch (e) {

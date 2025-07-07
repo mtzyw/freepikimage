@@ -1,4 +1,6 @@
 import "next-auth";
+import { DefaultSession } from "next-auth";
+import { User as UserType } from "@/types/user";
 
 declare module "next-auth" {
   interface JWT {
@@ -17,5 +19,9 @@ declare module "next-auth" {
       avatar_url?: string;
       created_at?: string;
     } & DefaultSession["user"];
+  }
+
+  interface User {
+    userInfo?: UserType; // 添加用户信息字段，用于在callbacks间传递数据
   }
 }

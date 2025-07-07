@@ -14,7 +14,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Sidebar } from "@/components/icon-generator/sidebar";
 import { pricingPlans, featureLabels, type PricingPlan } from "@/data/pricing-plans";
 
-export default function PricingPage() {
+export default function IconPricingPage() {
   const { data: session } = useSession();
   const [isYearly, setIsYearly] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
